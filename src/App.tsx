@@ -1,24 +1,31 @@
-import { useEffect, useState } from 'react'
-
-type ApiStatus = 'chargement' | 'ok' | 'erreur'
+import { Route, Routes } from 'react-router-dom'
+import { BandeProvider } from './BandeContext'
+import Layout from './composants/Layout'
+import Achats from './pages/Achats'
+import Aliments from './pages/Aliments'
+import Bandes from './pages/Bandes'
+import Parametres from './pages/Parametres'
+import Pertes from './pages/Pertes'
+import Stock from './pages/Stock'
+import TableauDeBord from './pages/TableauDeBord'
+import Ventes from './pages/Ventes'
 
 function App() {
-  const [status, setStatus] = useState<ApiStatus>('chargement')
-
-  useEffect(() => {
-    fetch('/api/health')
-      .then((res) => setStatus(res.ok ? 'ok' : 'erreur'))
-      .catch(() => setStatus('erreur'))
-  }, [])
-
   return (
-    <main className="app">
-      <h1>Poulet PT</h1>
-      <p>Gestion d'élevage de poulets de chair</p>
-      <p>
-        API : <strong className={`status status-${status}`}>{status}</strong>
-      </p>
-    </main>
+    <BandeProvider>
+      <Routes>
+        <Route element={<Layout />}>
+          <Route index element={<TableauDeBord />} />
+          <Route path="achats" element={<Achats />} />
+          <Route path="aliments" element={<Aliments />} />
+          <Route path="ventes" element={<Ventes />} />
+          <Route path="pertes" element={<Pertes />} />
+          <Route path="stock" element={<Stock />} />
+          <Route path="bandes" element={<Bandes />} />
+          <Route path="parametres" element={<Parametres />} />
+        </Route>
+      </Routes>
+    </BandeProvider>
   )
 }
 

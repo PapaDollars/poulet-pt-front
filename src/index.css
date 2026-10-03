@@ -1,24 +1,238 @@
+/* Couleurs des graphiques (palette validée daltonisme) et de l'application, clair / sombre */
 :root {
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  line-height: 1.5;
-  color: #1f2937;
-  background-color: #f9fafb;
+  --serie-1: #2a78d6;
+  --serie-2: #eb6834;
+  --grille: #e4e3df;
+  --texte-axe: #52514e;
+  --positif: #15803d;
+  --negatif: #b91c1c;
+  --sidebar-fond: #14532d;
+  --sidebar-texte: #d1fae5;
+  --sidebar-actif: #22c55e;
+  --bs-body-bg: #f6f7f5;
+}
+
+[data-bs-theme='dark'] {
+  --serie-1: #3987e5;
+  --serie-2: #d95926;
+  --grille: #3a3a37;
+  --texte-axe: #c3c2b7;
+  --positif: #4ade80;
+  --negatif: #f87171;
+  --sidebar-fond: #0f1f16;
+  --sidebar-texte: #bbf7d0;
+  --bs-body-bg: #161816;
 }
 
 body {
   margin: 0;
+  background: var(--bs-body-bg);
 }
 
-.app {
-  max-width: 960px;
-  margin: 0 auto;
-  padding: 2rem 1rem;
+.app-shell {
+  display: flex;
+  min-height: 100vh;
 }
 
-.status-ok {
-  color: #15803d;
+/* Menu principal à gauche */
+.sidebar {
+  position: fixed;
+  inset: 0 auto 0 0;
+  width: 230px;
+  background: var(--sidebar-fond);
+  color: var(--sidebar-texte);
+  padding: 1rem 0.75rem;
+  z-index: 1040;
+  transition: transform 0.2s ease;
 }
 
-.status-erreur {
-  color: #b91c1c;
+.sidebar-logo {
+  font-size: 1.25rem;
+  font-weight: 700;
+  padding: 0.25rem 0.75rem 1.25rem;
+  color: #fff;
+}
+
+.sidebar-lien {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 0.5rem;
+  color: var(--sidebar-texte);
+  text-decoration: none;
+  margin-bottom: 0.15rem;
+}
+
+.sidebar-lien:hover {
+  background: rgb(255 255 255 / 0.08);
+  color: #fff;
+}
+
+.sidebar-lien.active {
+  background: rgb(255 255 255 / 0.14);
+  color: #fff;
+  box-shadow: inset 3px 0 0 var(--sidebar-actif);
+}
+
+.sidebar-fond {
+  position: fixed;
+  inset: 0;
+  background: rgb(0 0 0 / 0.4);
+  z-index: 1030;
+}
+
+.contenu {
+  flex: 1;
+  min-width: 0;
+  margin-left: 230px;
+}
+
+.barre-haut {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.5rem;
+  background: var(--bs-tertiary-bg);
+  border-bottom: 1px solid var(--bs-border-color);
+  position: sticky;
+  top: 0;
+  z-index: 1020;
+}
+
+.barre-haut > div {
+  min-width: 0;
+}
+
+.barre-haut .form-select {
+  max-width: 340px;
+  min-width: 0;
+}
+
+.page {
+  padding: 1.5rem;
+  max-width: 1400px;
+}
+
+@media (max-width: 991.98px) {
+  .sidebar {
+    transform: translateX(-100%);
+  }
+  .sidebar.ouvert {
+    transform: none;
+  }
+  .contenu {
+    margin-left: 0;
+  }
+  .barre-haut,
+  .page {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+.titre-page {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 1.25rem;
+}
+
+.titre-graphique {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+.card {
+  border-color: var(--bs-border-color-translucent);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.04);
+}
+
+/* Tuiles de statistiques */
+.carte-titre {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--bs-secondary-color);
+}
+
+.carte-valeur {
+  font-size: 1.6rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.3;
+}
+
+.carte-detail {
+  font-size: 0.8rem;
+  color: var(--bs-secondary-color);
+}
+
+.texte-positif {
+  color: var(--positif);
+}
+
+.texte-negatif {
+  color: var(--negatif);
+}
+
+.table td,
+.table th {
+  white-space: nowrap;
+}
+
+.table td.text-end {
+  font-variant-numeric: tabular-nums;
+}
+
+.total-auto {
+  font-size: 1.1rem;
+}
+
+.apercu {
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  background: var(--bs-tertiary-bg);
+  font-size: 0.95rem;
+}
+
+.resume-melange {
+  border-top: 1px solid var(--bs-border-color);
+  padding-top: 0.75rem;
+}
+
+.ligne-cliquable {
+  cursor: pointer;
+}
+
+.badge-aliment {
+  background: #fef3c7;
+  color: #92400e;
+}
+.badge-poussins {
+  background: #dcfce7;
+  color: #166534;
+}
+.badge-medicament {
+  background: #dbeafe;
+  color: #1e40af;
+}
+.badge-autre {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+/* Jauge de répartition */
+.jauge {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--grille);
+  margin-top: 0.25rem;
+  overflow: hidden;
+}
+
+.jauge-remplie {
+  height: 100%;
+  border-radius: 4px;
+  background: var(--serie-1);
 }
