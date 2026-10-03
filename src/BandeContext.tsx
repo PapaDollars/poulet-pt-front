@@ -28,9 +28,9 @@ export function BandeProvider({ children }: { children: ReactNode }) {
   const rafraichirBandes = useCallback(async () => {
     try {
       const res = await api.get<Bande[]>('/bandes')
-      setBandes(res.data)
+      setBandes(Array.isArray(res.data) ? res.data : [])
     } catch (err) {
-      toast.error(messageErreur(err))
+      toast.error(messageErreur(err), { toastId: 'erreur-chargement' })
     }
   }, [])
 

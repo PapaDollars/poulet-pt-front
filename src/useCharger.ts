@@ -6,6 +6,7 @@ import { api, messageErreur } from './api'
 export function useCharger<T>(url: string | null) {
   const [donnees, setDonnees] = useState<T | null>(null)
   const [chargement, setChargement] = useState(true)
+  const [erreur, setErreur] = useState<string | null>(null)
 
   const recharger = useCallback(async () => {
     if (!url) {
@@ -17,8 +18,10 @@ export function useCharger<T>(url: string | null) {
     try {
       const res = await api.get<T>(url)
       setDonnees(res.data)
+      setErreur(null)
     } catch (err) {
-      toast.error(messageErreur(err))
+      setErreur(messageErreur(err))
+      toast.error(messageErreur(err), { toastId: 'erreur-chargement' })
     } finally {
       setChargement(false)
     }
@@ -28,5 +31,5 @@ export function useCharger<T>(url: string | null) {
     void recharger()
   }, [recharger])
 
-  return { donnees, chargement, recharger }
+  return { donnees, chargement, erreur, recharger }
 }
