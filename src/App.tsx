@@ -4,6 +4,7 @@ import Layout from './composants/Layout'
 import Achats from './pages/Achats'
 import Aliments from './pages/Aliments'
 import Bandes from './pages/Bandes'
+import FicheBande from './pages/FicheBande'
 import Parametres from './pages/Parametres'
 import Pertes from './pages/Pertes'
 import Stock from './pages/Stock'
@@ -22,6 +23,7 @@ function App() {
           <Route path="pertes" element={<Pertes />} />
           <Route path="stock" element={<Stock />} />
           <Route path="bandes" element={<Bandes />} />
+          <Route path="bandes/:id" element={<FicheBande />} />
           <Route path="parametres" element={<Parametres />} />
         </Route>
       </Routes>

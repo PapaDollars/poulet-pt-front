@@ -1,16 +1,15 @@
-import { useState } from 'react'
+import { useState, type FormEvent } from 'react'
 import { toast } from 'react-toastify'
 import { api, messageErreur } from '../api'
 import BoutonSupprimer from '../composants/BoutonSupprimer'
-import { fcfa, PHASES } from '../format'
-import type { Produit } from '../types'
+import type { Produit, Unite } from '../types'
 import { useCharger } from '../useCharger'
 
 type Brouillon = Omit<Produit, 'id'> & { id?: string }
 
-const NOUVEAU: Brouillon = { nom: '', unite: 'kg', prix: 0, poidsKg: 1, phases: [1, 2, 3] }
+const NOUVEAU: Brouillon = { nom: '', unite: 'kg', prix: 0 }
 
-function LigneProduit({ initial, apres }: { initial: Brouillon; apres: () => void }) {
+function LigneProduit({ initial, unites, apres }: { initial: Brouillon; unites: Unite[]; apres: () => void }) {
   const [p, setP] = useState(initial)
   const modifie = JSON.stringify(p) !== JSON.stringify(initial)
 
@@ -26,31 +25,21 @@ function LigneProduit({ initial, apres }: { initial: Brouillon; apres: () => voi
     }
   }
 
-  const basculerPhase = (ph: number) =>
-    setP((x) => ({ ...x, phases: x.phases.includes(ph) ? x.phases.filter((y) => y !== ph) : [...x.phases, ph].sort() }))
-
   return (
     <tr>
       <td>
         <input className="form-control form-control-sm" value={p.nom} onChange={(e) => setP({ ...p, nom: e.target.value })} placeholder="Nouveau produit" />
       </td>
-      <td style={{ width: 110 }}>
-        <input className="form-control form-control-sm" value={p.unite} onChange={(e) => setP({ ...p, unite: e.target.value })} />
+      <td style={{ width: 150 }}>
+        <select className="form-select form-select-sm" value={p.unite} onChange={(e) => setP({ ...p, unite: e.target.value })}>
+          {!unites.some((u) => u.nom === p.unite) && <option>{p.unite}</option>}
+          {unites.map((u) => (
+            <option key={u.id}>{u.nom}</option>
+          ))}
+        </select>
       </td>
-      <td style={{ width: 130 }}>
-        <input type="number" min="0" className="form-control form-control-sm" value={p.prix} onChange={(e) => setP({ ...p, prix: Number(e.target.value) })} />
-      </td>
-      <td style={{ width: 110 }}>
-        <input type="number" min="0" step="any" className="form-control form-control-sm" value={p.poidsKg} onChange={(e) => setP({ ...p, poidsKg: Number(e.target.value) })} />
-      </td>
-      <td className="text-end text-body-secondary small">{p.poidsKg > 0 ? `${fcfa(p.prix / p.poidsKg)} / kg` : 'forfait'}</td>
-      <td className="text-nowrap">
-        {[1, 2, 3].map((ph) => (
-          <label key={ph} className="form-check form-check-inline mb-0" title={PHASES[ph]}>
-            <input type="checkbox" className="form-check-input" checked={p.phases.includes(ph)} onChange={() => basculerPhase(ph)} />
-            <span className="form-check-label">{ph}</span>
-          </label>
-        ))}
+      <td style={{ width: 160 }}>
+        <input type="number" min="0" step="any" className="form-control form-control-sm" value={p.prix} onChange={(e) => setP({ ...p, prix: Number(e.target.value) })} />
       </td>
       <td className="text-end text-nowrap">
         <button className="btn btn-sm btn-primary me-2" disabled={!modifie || !p.nom} onClick={enregistrer}>
@@ -64,36 +53,73 @@ function LigneProduit({ initial, apres }: { initial: Brouillon; apres: () => voi
 
 export default function Parametres() {
   const produits = useCharger<Produit[]>('/produits')
+  const unites = useCharger<Unite[]>('/unites')
+  const [nouvelleUnite, setNouvelleUnite] = useState('')
+
+  async function ajouterUnite(e: FormEvent) {
+    e.preventDefault()
+    try {
+      await api.post('/unites', { nom: nouvelleUnite })
+      toast.success(`Unité « ${nouvelleUnite} » ajoutée`)
+      setNouvelleUnite('')
+      void unites.recharger()
+    } catch (err) {
+      toast.error(messageErreur(err))
+    }
+  }
 
   return (
     <>
-      <h1 className="titre-page">Paramètres — produits et prix</h1>
-      <p className="text-body-secondary">
-        Prix en FCFA par unité. « Poids » = kilos contenus dans une unité (sac de 50 kg → 50 ; tonne → 1000 ; mettez 0 pour un forfait comme la
-        manutention). Les cases 1, 2, 3 indiquent les étapes d'aliment qui utilisent le produit. Un changement de prix ne modifie pas les
-        mélanges déjà enregistrés.
-      </p>
-      <div className="card">
-        <div className="table-responsive">
-          <table className="table align-middle mb-0">
-            <thead>
-              <tr>
-                <th>Produit</th>
-                <th>Unité</th>
-                <th>Prix (F)</th>
-                <th>Poids (kg)</th>
-                <th className="text-end">Prix au kg</th>
-                <th>Étapes</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {(produits.donnees ?? []).map((p) => (
-                <LigneProduit key={`${p.id}-${JSON.stringify(p)}`} initial={p} apres={produits.recharger} />
-              ))}
-              <LigneProduit key="nouveau" initial={NOUVEAU} apres={produits.recharger} />
-            </tbody>
-          </table>
+      <h1 className="titre-page">Paramètres</h1>
+
+      <div className="row g-4">
+        <div className="col-12 col-xl-8">
+          <h2 className="h5">Produits</h2>
+          <p className="text-body-secondary small">
+            Prix de référence en FCFA par unité : il est proposé quand on achète le produit. Dans les mélanges, le prix proposé est le coût réel du
+            stock (achat + transport).
+          </p>
+          <div className="card">
+            <div className="table-responsive">
+              <table className="table align-middle mb-0">
+                <thead>
+                  <tr>
+                    <th>Produit</th>
+                    <th>Unité</th>
+                    <th>Prix de référence (F)</th>
+                    <th />
+                  </tr>
+                </thead>
+                <tbody>
+                  {(produits.donnees ?? []).map((p) => (
+                    <LigneProduit key={`${p.id}-${JSON.stringify(p)}`} initial={p} unites={unites.donnees ?? []} apres={produits.recharger} />
+                  ))}
+                  <LigneProduit key="nouveau" initial={NOUVEAU} unites={unites.donnees ?? []} apres={produits.recharger} />
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div className="col-12 col-xl-4">
+          <h2 className="h5">Unités</h2>
+          <p className="text-body-secondary small">Unités proposées pour les produits, les achats des bandes et les lignes libres des mélanges.</p>
+          <div className="card">
+            <div className="card-body">
+              <form className="input-group mb-3" onSubmit={ajouterUnite}>
+                <input className="form-control" value={nouvelleUnite} onChange={(e) => setNouvelleUnite(e.target.value)} placeholder="ex. seau, carton…" required />
+                <button className="btn btn-primary">Ajouter</button>
+              </form>
+              <div className="d-flex flex-wrap gap-2">
+                {(unites.donnees ?? []).map((u) => (
+                  <span key={u.id} className="badge text-bg-light border d-inline-flex align-items-center gap-2 fs-6 fw-normal">
+                    {u.nom}
+                    <BoutonSupprimer url={`/unites/${u.id}`} confirmation={`Supprimer l'unité « ${u.nom} » ?`} apres={unites.recharger} />
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </>

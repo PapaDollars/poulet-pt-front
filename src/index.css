@@ -2,6 +2,7 @@
 :root {
   --serie-1: #2a78d6;
   --serie-2: #eb6834;
+  --serie-3: #1baf7a;
   --grille: #e4e3df;
   --texte-axe: #52514e;
   --positif: #15803d;
@@ -15,6 +16,7 @@
 [data-bs-theme='dark'] {
   --serie-1: #3987e5;
   --serie-2: #d95926;
+  --serie-3: #199e70;
   --grille: #3a3a37;
   --texte-axe: #c3c2b7;
   --positif: #4ade80;
@@ -235,4 +237,33 @@ body {
   height: 100%;
   border-radius: 4px;
   background: var(--serie-1);
+}
+
+/* Fiche bande façon feuille de calcul */
+.table-fiche thead th {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.table-fiche tfoot td {
+  font-weight: 700;
+  border-top: 2px solid var(--bs-border-color);
+}
+
+.badge-demarrage {
+  background: #fef3c7;
+  color: #92400e;
+}
+.badge-croissance {
+  background: #dcfce7;
+  color: #166534;
+}
+.badge-finition {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.ligne-retiree {
+  opacity: 0.45;
 }

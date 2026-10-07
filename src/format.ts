@@ -15,15 +15,10 @@ export function aujourdhui() {
   return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10)
 }
 
-export const PHASES: Record<number, string> = {
-  1: 'Étape 1 — Démarrage',
-  2: 'Étape 2 — Croissance',
-  3: 'Étape 3 — Finition',
+export const TYPES_ALIMENT: Record<string, string> = {
+  demarrage: 'Démarrage',
+  croissance: 'Croissance',
+  finition: 'Finition',
 }
 
-export const CATEGORIES: Record<string, string> = {
-  aliment: 'Aliment',
-  poussins: 'Poussins',
-  medicament: 'Médicament',
-  autre: 'Autre',
-}
+export const LISTE_TYPES = ['demarrage', 'croissance', 'finition'] as const

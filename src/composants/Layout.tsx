@@ -17,12 +17,12 @@ import { nombre } from '../format'
 
 const MENU = [
   { to: '/', label: 'Tableau de bord', icone: faChartLine },
-  { to: '/achats', label: 'Achats', icone: faCartShopping },
+  { to: '/bandes', label: 'Bandes', icone: faLayerGroup },
+  { to: '/achats', label: 'Achats bande', icone: faCartShopping },
   { to: '/aliments', label: 'Aliments', icone: faWheatAwn },
+  { to: '/stock', label: 'Stock', icone: faBoxesStacked },
   { to: '/ventes', label: 'Ventes', icone: faSackDollar },
   { to: '/pertes', label: 'Pertes', icone: faSkullCrossbones },
-  { to: '/stock', label: 'Stock', icone: faBoxesStacked },
-  { to: '/bandes', label: 'Bandes', icone: faLayerGroup },
   { to: '/parametres', label: 'Paramètres', icone: faGear },
 ]
 
@@ -61,7 +61,7 @@ export default function Layout() {
               onChange={(e) => choisirBande(e.target.value)}
               disabled={!bandes.length}
             >
-              {!bandes.length && <option value="">Aucune bande — achetez des poussins</option>}
+              {!bandes.length && <option value="">Aucune bande — créez-en une</option>}
               {bandes.map((b) => (
                 <option key={b.id} value={b.id}>
                   {b.nom} — {nombre(b.vivants)} vivants {b.cloturee ? '(clôturée)' : `· J${b.age}`}

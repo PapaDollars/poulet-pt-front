@@ -1,69 +1,64 @@
-import { useMemo, useState, type FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
+import { Link } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import { api, messageErreur } from '../api'
 import { useBande } from '../BandeContext'
 import BoutonSupprimer from '../composants/BoutonSupprimer'
-import Carte from '../composants/Carte'
-import { aujourdhui, CATEGORIES, dateFr, fcfa, nombre } from '../format'
-import type { Achat, Categorie, Produit } from '../types'
+import SansBande from '../composants/SansBande'
+import { aujourdhui, dateFr, fcfa, nombre, TYPES_ALIMENT } from '../format'
+import type { BandeDetail, Depense, Unite } from '../types'
 import { useCharger } from '../useCharger'
 
-const VIDE = { produitId: '', unite: 'produit', quantite: '', prixUnitaire: '', designation: '', uniteLibre: '', nomBande: '' }
+interface Suggestion {
+  designation: string
+  unite: string
+  prixUnitaire: number
+}
 
+/** Achats d'une bande : vaccins, médicaments, nettoyage… (+ poussins et sacs en lecture). */
 export default function Achats() {
-  const { bande, rafraichirBandes, choisirBande } = useBande()
-  const achats = useCharger<Achat[]>('/achats')
-  const produits = useCharger<Produit[]>('/produits')
-  const [categorie, setCategorie] = useState<Categorie>('aliment')
+  const { bande, rafraichirBandes } = useBande()
+  const fiche = useCharger<BandeDetail>(bande ? `/bandes/${bande.id}` : null)
+  const suggestions = useCharger<Suggestion[]>('/depenses/designations')
+  const unites = useCharger<Unite[]>('/unites')
   const [date, setDate] = useState(aujourdhui())
-  const [champs, setChamps] = useState(VIDE)
+  const [designation, setDesignation] = useState('')
+  const [quantite, setQuantite] = useState('1')
+  const [unite, setUnite] = useState('unité')
+  const [prix, setPrix] = useState('')
   const [envoi, setEnvoi] = useState(false)
 
-  const produitsStockables = (produits.donnees ?? []).filter((p) => p.poidsKg > 0)
-  const produit = produitsStockables.find((p) => p.id === champs.produitId)
-  const enKg = champs.unite === 'kg'
+  if (!bande) return <SansBande />
 
-  // Prix proposé automatiquement à partir du catalogue (modifiable)
-  const prixAuto = produit ? (enKg ? produit.prix / produit.poidsKg : produit.prix) : 0
-  const prix = champs.prixUnitaire === '' ? (categorie === 'aliment' ? prixAuto : 0) : Number(champs.prixUnitaire)
-  const quantite = Number(champs.quantite) || 0
-  const montant = Math.round(quantite * prix)
+  const montant = Math.round((Number(quantite) || 0) * (Number(prix) || 0))
 
-  const maj = (cle: keyof typeof VIDE) => (e: { target: { value: string } }) => setChamps((c) => ({ ...c, [cle]: e.target.value }))
+  // Une désignation déjà connue reprend son unité et son dernier prix
+  function choisirDesignation(valeur: string) {
+    setDesignation(valeur)
+    const s = suggestions.donnees?.find((x) => x.designation.toLowerCase() === valeur.toLowerCase())
+    if (s) {
+      setUnite(s.unite)
+      setPrix(String(s.prixUnitaire))
+    }
+  }
 
-  const totaux = useMemo(() => {
-    const t: Record<string, number> = { aliment: 0, poussins: 0, medicament: 0, autre: 0 }
-    for (const a of achats.donnees ?? []) t[a.categorie] += a.montant
-    return t
-  }, [achats.donnees])
+  function recharger() {
+    void fiche.recharger()
+    void suggestions.recharger()
+    void rafraichirBandes()
+  }
 
   async function enregistrer(e: FormEvent) {
     e.preventDefault()
+    if (!bande) return
     setEnvoi(true)
     try {
-      const corps = {
-        categorie,
-        date,
-        quantite: champs.quantite,
-        prixUnitaire: champs.prixUnitaire,
-        ...(categorie === 'aliment' && { produitId: champs.produitId, unite: enKg ? 'kg' : 'produit' }),
-        ...(categorie === 'poussins' && { nomBande: champs.nomBande }),
-        ...((categorie === 'medicament' || categorie === 'autre') && {
-          designation: champs.designation,
-          unite: champs.uniteLibre,
-          bandeId: bande?.id ?? null,
-        }),
-      }
-      const res = await api.post<Achat>('/achats', corps)
-      toast.success(`Achat enregistré : ${fcfa(res.data.montant)}`)
-      setChamps({ ...VIDE, produitId: champs.produitId, unite: champs.unite })
-      void achats.recharger()
-      if (categorie === 'poussins' && res.data.bandeId) {
-        await rafraichirBandes()
-        choisirBande(res.data.bandeId)
-      } else {
-        void rafraichirBandes()
-      }
+      const res = await api.post<Depense>('/depenses', { date, bandeId: bande.id, designation, quantite, unite, prixUnitaire: prix })
+      toast.success(`${res.data.designation} : ${fcfa(res.data.montant)}`)
+      setDesignation('')
+      setQuantite('1')
+      setPrix('')
+      recharger()
     } catch (err) {
       toast.error(messageErreur(err))
     } finally {
@@ -71,184 +66,111 @@ export default function Achats() {
     }
   }
 
+  const lignes = fiche.donnees?.lignesAchats ?? []
+  const total = lignes.reduce((t, l) => t + l.montant, 0)
+
   return (
     <>
-      <h1 className="titre-page">Achats</h1>
-
-      <div className="row g-3 mb-4">
-        {Object.entries(CATEGORIES).map(([cle, libelle]) => (
-          <div className="col-6 col-xl-3" key={cle}>
-            <Carte titre={`Total ${libelle.toLowerCase()}`} valeur={fcfa(totaux[cle])} />
-          </div>
-        ))}
-      </div>
+      <h1 className="titre-page">Achats — {bande.nom}</h1>
 
       <form className="card mb-4" onSubmit={enregistrer}>
         <div className="card-body">
-          <div className="btn-group mb-3 flex-wrap" role="group" aria-label="Type d'achat">
-            {(Object.keys(CATEGORIES) as Categorie[]).map((c) => (
-              <button
-                type="button"
-                key={c}
-                className={`btn ${categorie === c ? 'btn-primary' : 'btn-outline-primary'}`}
-                onClick={() => {
-                  setCategorie(c)
-                  setChamps(VIDE)
-                }}
-              >
-                {CATEGORIES[c]}
-              </button>
-            ))}
-          </div>
-
           <div className="row g-3 align-items-end">
             <div className="col-6 col-md-2">
               <label className="form-label">Date</label>
-              <input type="date" className="form-control" value={date} onChange={(e) => setDate(e.target.value)} required />
+              <input type="date" className="form-control" value={date} min={bande.dateArrivee} onChange={(e) => setDate(e.target.value)} required />
             </div>
-
-            {categorie === 'aliment' && (
-              <>
-                <div className="col-6 col-md-3">
-                  <label className="form-label">Produit</label>
-                  <select className="form-select" value={champs.produitId} onChange={maj('produitId')} required>
-                    <option value="">Choisir…</option>
-                    {produitsStockables.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.nom}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="col-6 col-md-2">
-                  <label className="form-label">Acheté en</label>
-                  <select className="form-select" value={champs.unite} onChange={maj('unite')}>
-                    <option value="produit">{produit && produit.unite !== 'kg' ? `${produit.unite} (${produit.poidsKg} kg)` : 'unité du produit'}</option>
-                    <option value="kg">kg</option>
-                  </select>
-                </div>
-              </>
-            )}
-
-            {categorie === 'poussins' && (
-              <div className="col-12 col-md-3">
-                <label className="form-label">Nom de la bande</label>
-                <input className="form-control" value={champs.nomBande} onChange={maj('nomBande')} placeholder="Automatique (Bande N)" />
-              </div>
-            )}
-
-            {(categorie === 'medicament' || categorie === 'autre') && (
-              <>
-                <div className="col-12 col-md-3">
-                  <label className="form-label">Désignation</label>
-                  <input
-                    className="form-control"
-                    value={champs.designation}
-                    onChange={maj('designation')}
-                    placeholder={categorie === 'medicament' ? 'Vaccin, vitamines…' : 'Litière, transport…'}
-                    required
-                  />
-                </div>
-                <div className="col-6 col-md-1">
-                  <label className="form-label">Unité</label>
-                  <input className="form-control" value={champs.uniteLibre} onChange={maj('uniteLibre')} placeholder="flacon" />
-                </div>
-              </>
-            )}
-
-            <div className="col-6 col-md-2">
-              <label className="form-label">{categorie === 'poussins' ? 'Nombre' : 'Quantité'}</label>
+            <div className="col-12 col-md-4">
+              <label className="form-label">Produit / désignation</label>
               <input
-                type="number"
-                min="0"
-                step={categorie === 'poussins' ? 1 : 'any'}
                 className="form-control"
-                value={champs.quantite}
-                onChange={maj('quantite')}
+                value={designation}
+                onChange={(e) => choisirDesignation(e.target.value)}
+                list="designations"
+                placeholder="Vaccin, Doxylin, nettoyage, charbon…"
                 required
               />
+              <datalist id="designations">
+                {(suggestions.donnees ?? []).map((s) => (
+                  <option key={s.designation} value={s.designation} />
+                ))}
+              </datalist>
             </div>
             <div className="col-6 col-md-2">
-              <label className="form-label">{categorie === 'poussins' ? 'Prix / poussin' : 'Prix unitaire'}</label>
-              <input
-                type="number"
-                min="0"
-                step="any"
-                className="form-control"
-                value={champs.prixUnitaire}
-                onChange={maj('prixUnitaire')}
-                placeholder={categorie === 'aliment' && produit ? String(Math.round(prixAuto * 100) / 100) : ''}
-                required={categorie !== 'aliment'}
-              />
+              <label className="form-label">Quantité</label>
+              <div className="input-group">
+                <input type="number" min="0" step="any" className="form-control" value={quantite} onChange={(e) => setQuantite(e.target.value)} required />
+                <select className="form-select" value={unite} onChange={(e) => setUnite(e.target.value)} aria-label="Unité" style={{ maxWidth: 110 }}>
+                  {(unites.donnees ?? []).map((u) => (
+                    <option key={u.id}>{u.nom}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="col-6 col-md-2">
+              <label className="form-label">Prix unitaire</label>
+              <input type="number" min="0" step="any" className="form-control" value={prix} onChange={(e) => setPrix(e.target.value)} required />
+            </div>
+            <div className="col-12 col-md-2 text-end">
+              <div className="total-auto mb-2">
+                <strong>{fcfa(montant)}</strong>
+              </div>
+              <button className="btn btn-success" disabled={envoi}>
+                Ajouter
+              </button>
             </div>
           </div>
-
-          <div className="d-flex flex-wrap align-items-center gap-3 mt-3">
-            <div className="total-auto">
-              Montant : <strong>{fcfa(montant)}</strong>
-              {categorie === 'aliment' && produit && quantite > 0 && (
-                <span className="text-body-secondary"> · {nombre(enKg ? quantite : quantite * produit.poidsKg)} kg en stock</span>
-              )}
-              {(categorie === 'medicament' || categorie === 'autre') && bande && (
-                <span className="text-body-secondary"> · imputé à {bande.nom}</span>
-              )}
-            </div>
-            <button className="btn btn-success ms-auto" disabled={envoi}>
-              Enregistrer l'achat
-            </button>
-          </div>
+          <p className="small text-body-secondary mt-3 mb-0">
+            Les poussins viennent de la <Link to="/bandes">bande</Link> et les sacs d'aliment des <Link to="/aliments">distributions</Link> : ils
+            s'ajoutent tout seuls ci-dessous.
+          </p>
         </div>
       </form>
 
       <div className="card">
         <div className="table-responsive">
-          <table className="table table-hover align-middle mb-0">
+          <table className="table table-hover table-fiche align-middle mb-0">
             <thead>
               <tr>
+                <th>Produits</th>
+                <th className="text-end">Qté</th>
+                <th className="text-end">Prix unit.</th>
+                <th className="text-end">Total</th>
                 <th>Date</th>
-                <th>Type</th>
-                <th>Désignation</th>
-                <th className="text-end">Quantité</th>
-                <th className="text-end">Prix unitaire</th>
-                <th className="text-end">Montant</th>
-                <th>Bande</th>
                 <th />
               </tr>
             </thead>
             <tbody>
-              {(achats.donnees ?? []).map((a) => (
-                <tr key={a.id}>
-                  <td>{dateFr(a.date)}</td>
+              {lignes.map((l, i) => (
+                <tr key={l.id ?? `${l.source}-${i}`}>
                   <td>
-                    <span className={`badge badge-${a.categorie}`}>{CATEGORIES[a.categorie]}</span>
+                    {l.source === 'sacs' && l.typeAliment ? (
+                      <span className={`badge badge-${l.typeAliment}`}>Sacs {TYPES_ALIMENT[l.typeAliment]}</span>
+                    ) : (
+                      l.designation
+                    )}
                   </td>
-                  <td>{a.designation}</td>
                   <td className="text-end">
-                    {nombre(a.quantite)} {a.unite}
+                    {nombre(l.quantite)} <span className="text-body-secondary small">{l.unite}</span>
                   </td>
-                  <td className="text-end">{fcfa(a.prixUnitaire)}</td>
-                  <td className="text-end fw-semibold">{fcfa(a.montant)}</td>
-                  <td>{a.bandeNom ?? '—'}</td>
+                  <td className="text-end">{fcfa(l.prixUnitaire)}</td>
+                  <td className="text-end fw-semibold">{fcfa(l.montant)}</td>
+                  <td className="text-body-secondary small">{l.source === 'sacs' ? 'plusieurs' : dateFr(l.date)}</td>
                   <td className="text-end">
-                    <BoutonSupprimer
-                      url={`/achats/${a.id}`}
-                      confirmation={a.categorie === 'poussins' ? 'Supprimer cet achat et la bande associée ?' : 'Supprimer cet achat ?'}
-                      apres={() => {
-                        void achats.recharger()
-                        void rafraichirBandes()
-                      }}
-                    />
+                    {l.source === 'depense' && l.id && (
+                      <BoutonSupprimer url={`/depenses/${l.id}`} confirmation={`Supprimer ${l.designation} ?`} apres={recharger} />
+                    )}
                   </td>
                 </tr>
               ))}
-              {!achats.chargement && !achats.donnees?.length && (
-                <tr>
-                  <td colSpan={8} className="text-center text-body-secondary py-4">
-                    Aucun achat enregistré
-                  </td>
-                </tr>
-              )}
             </tbody>
+            <tfoot>
+              <tr>
+                <td colSpan={3}>Prix achats</td>
+                <td className="text-end">{fcfa(total)}</td>
+                <td colSpan={2} />
+              </tr>
+            </tfoot>
           </table>
         </div>
       </div>

@@ -5,7 +5,7 @@ import { useBande } from '../BandeContext'
 import BoutonSupprimer from '../composants/BoutonSupprimer'
 import Carte from '../composants/Carte'
 import SansBande from '../composants/SansBande'
-import { aujourdhui, dateFr, fcfa, kg, nombre } from '../format'
+import { aujourdhui, dateFr, fcfa, nombre } from '../format'
 import type { Perte } from '../types'
 import { useCharger } from '../useCharger'
 import { useCoutAuJour } from '../useCoutAuJour'
@@ -115,7 +115,7 @@ export default function Pertes() {
           </div>
           {cout && (
             <div className="apercu mt-3">
-              À <strong>J{cout.age}</strong>, chaque poulet a consommé <strong>{kg(cout.alimentKg)}</strong> d'aliment et coûté{' '}
+              À <strong>J{cout.age}</strong>, chaque poulet a consommé <strong>{nombre(cout.sacs)} sac</strong> d'aliment et coûté{' '}
               <strong>{fcfa(cout.coutUnitaire)}</strong> (poussin {fcfa(cout.coutPoussin)} + aliments {fcfa(cout.coutAliment)} + soins{' '}
               {fcfa(cout.coutSoins)})
               {n > 0 && (
@@ -138,7 +138,7 @@ export default function Pertes() {
                 <th>Âge</th>
                 <th className="text-end">Nombre</th>
                 <th>Cause</th>
-                <th className="text-end">Aliment consommé</th>
+                <th className="text-end">Sacs consommés</th>
                 <th className="text-end">Coût / poulet</th>
                 <th className="text-end">Dépense perdue</th>
                 <th />
@@ -152,7 +152,7 @@ export default function Pertes() {
                   <td className="text-end fw-semibold">{nombre(p.nombre)}</td>
                   <td>{p.cause || '—'}</td>
                   <td className="text-end">
-                    {kg(p.alimentKgTotal)} <span className="text-body-secondary small">({kg(p.alimentKgUnitaire)} / poulet)</span>
+                    {nombre(p.sacsTotal)} sacs <span className="text-body-secondary small">({nombre(p.sacsUnitaire)} / poulet)</span>
                   </td>
                   <td className="text-end">{fcfa(p.coutUnitaire)}</td>
                   <td className="text-end fw-semibold texte-negatif">{fcfa(p.coutTotal)}</td>

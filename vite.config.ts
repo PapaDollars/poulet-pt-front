@@ -8,7 +8,7 @@ export default defineConfig({
     port: 5173,
     proxy: {
       // Redirige les appels /api vers le backend Node en développement
-      '/api': 'http://localhost:4000',
+      '/api': process.env.API_URL ?? 'http://localhost:4000',
     },
   },
 })
