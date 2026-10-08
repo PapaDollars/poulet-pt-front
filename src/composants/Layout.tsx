@@ -18,8 +18,8 @@ import { nombre } from '../format'
 const MENU = [
   { to: '/', label: 'Tableau de bord', icone: faChartLine },
   { to: '/bandes', label: 'Bandes', icone: faLayerGroup },
-  { to: '/achats', label: 'Achats bande', icone: faCartShopping },
-  { to: '/aliments', label: 'Aliments', icone: faWheatAwn },
+  { to: '/achats', label: 'Achats', icone: faCartShopping },
+  { to: '/fabrications', label: 'Fabrications', icone: faWheatAwn },
   { to: '/stock', label: 'Stock', icone: faBoxesStacked },
   { to: '/ventes', label: 'Ventes', icone: faSackDollar },
   { to: '/pertes', label: 'Pertes', icone: faSkullCrossbones },
@@ -64,7 +64,7 @@ export default function Layout() {
               {!bandes.length && <option value="">Aucune bande — créez-en une</option>}
               {bandes.map((b) => (
                 <option key={b.id} value={b.id}>
-                  {b.nom} — {nombre(b.vivants)} vivants {b.cloturee ? '(clôturée)' : `· J${b.age}`}
+                  {b.nom} — {nombre(b.vivants)} vivants {b.cloturee ? '(terminée)' : `· J${b.age}`}
                 </option>
               ))}
             </select>

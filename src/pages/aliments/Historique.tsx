@@ -1,5 +1,4 @@
 import { Fragment, useState } from 'react'
-import BoutonSupprimer from '../../composants/BoutonSupprimer'
 import { dateFr, fcfa, nombre, TYPES_ALIMENT } from '../../format'
 import type { Fabrication } from '../../types'
 import { useCharger } from '../../useCharger'
@@ -23,7 +22,6 @@ export default function Historique() {
               <th className="text-end">Prix du sac</th>
               <th className="text-end">Total</th>
               <th className="text-end">Restants</th>
-              <th />
             </tr>
           </thead>
           <tbody>
@@ -45,17 +43,10 @@ export default function Historique() {
                   <td className="text-end fw-semibold">{fcfa(f.prixSac)}</td>
                   <td className="text-end">{fcfa(f.montantTotal)}</td>
                   <td className="text-end">{nombre(f.restants)}</td>
-                  <td className="text-end" onClick={(e) => e.stopPropagation()}>
-                    <BoutonSupprimer
-                      url={`/fabrications/${f.id}`}
-                      confirmation="Supprimer ce mélange ? Les produits pris dans le stock y retournent."
-                      apres={fabrications.recharger}
-                    />
-                  </td>
                 </tr>
                 {ouvert === f.id && (
                   <tr>
-                    <td colSpan={9} className="bg-body-tertiary">
+                    <td colSpan={8} className="bg-body-tertiary">
                       <table className="table table-sm mb-0 small">
                         <tbody>
                           {f.lignes.map((l, i) => (
@@ -80,7 +71,7 @@ export default function Historique() {
             ))}
             {!fabrications.chargement && !fabrications.donnees?.length && (
               <tr>
-                <td colSpan={9} className="text-center text-body-secondary py-4">
+                <td colSpan={8} className="text-center text-body-secondary py-4">
                   Aucun mélange fabriqué
                 </td>
               </tr>

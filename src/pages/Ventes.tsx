@@ -2,17 +2,22 @@ import { useState, type FormEvent } from 'react'
 import { toast } from 'react-toastify'
 import { api, messageErreur } from '../api'
 import { useBande } from '../BandeContext'
-import BoutonSupprimer from '../composants/BoutonSupprimer'
 import Carte from '../composants/Carte'
+import ChoixBande from '../composants/ChoixBande'
+import FiltreBandes from '../composants/FiltreBandes'
 import SansBande from '../composants/SansBande'
 import { aujourdhui, dateFr, fcfa, nombre } from '../format'
 import type { Vente } from '../types'
 import { useCharger } from '../useCharger'
+import ModifierVenteModal from './ModifierVenteModal'
 import { useCoutAuJour } from '../useCoutAuJour'
 
 export default function Ventes() {
-  const { bande, rafraichirBandes } = useBande()
-  const ventes = useCharger<Vente[]>(bande ? `/ventes?bandeId=${bande.id}` : null)
+  const { bande, bandes, rafraichirBandes } = useBande()
+  const [aModifier, setAModifier] = useState<Vente | null>(null)
+  // Tableau : toutes les bandes par défaut, ou une seule
+  const [filtre, setFiltre] = useState('')
+  const ventes = useCharger<Vente[]>(filtre ? `/ventes?bandeId=${filtre}` : '/ventes')
   const [date, setDate] = useState(aujourdhui())
   const [quantite, setQuantite] = useState('')
   const [prix, setPrix] = useState('')
@@ -71,6 +76,9 @@ export default function Ventes() {
       <form className="card mb-4" onSubmit={enregistrer}>
         <div className="card-body">
           <div className="row g-3 align-items-end">
+            <div className="col-12 col-md-3">
+              <ChoixBande />
+            </div>
             <div className="col-6 col-md-2">
               <label className="form-label">Date</label>
               <input type="date" className="form-control" value={date} onChange={(e) => setDate(e.target.value)} required />
@@ -96,7 +104,7 @@ export default function Ventes() {
               <label className="form-label">Client</label>
               <input className="form-control" value={client} onChange={(e) => setClient(e.target.value)} placeholder="Facultatif" />
             </div>
-            <div className="col-12 col-md-3 text-end">
+            <div className="col-12 text-end">
               <button className="btn btn-success" disabled={envoi || !bande.vivants}>
                 Enregistrer la vente
               </button>
@@ -118,12 +126,14 @@ export default function Ventes() {
         </div>
       </form>
 
+      <FiltreBandes valeur={filtre} changer={setFiltre} />
       <div className="card">
         <div className="table-responsive">
           <table className="table table-hover align-middle mb-0">
             <thead>
               <tr>
                 <th>Date</th>
+                <th>Bande</th>
                 <th>Âge</th>
                 <th>Client</th>
                 <th className="text-end">Nombre</th>
@@ -138,6 +148,7 @@ export default function Ventes() {
               {(ventes.donnees ?? []).map((v) => (
                 <tr key={v.id}>
                   <td>{dateFr(v.date)}</td>
+                  <td>{v.bandeNom}</td>
                   <td>J{v.age}</td>
                   <td>{v.client || '—'}</td>
                   <td className="text-end">{nombre(v.quantite)}</td>
@@ -145,22 +156,17 @@ export default function Ventes() {
                   <td className="text-end fw-semibold">{fcfa(v.montant)}</td>
                   <td className="text-end">{fcfa(v.coutTotal)}</td>
                   <td className={`text-end fw-semibold ${v.marge >= 0 ? 'texte-positif' : 'texte-negatif'}`}>{fcfa(v.marge)}</td>
-                  <td className="text-end">
-                    <BoutonSupprimer
-                      url={`/ventes/${v.id}`}
-                      confirmation="Supprimer cette vente ?"
-                      apres={() => {
-                        void ventes.recharger()
-                        void rafraichirBandes()
-                      }}
-                    />
+                  <td className="text-end text-nowrap">
+                    <button className="btn btn-sm btn-outline-secondary" onClick={() => setAModifier(v)}>
+                      Modifier
+                    </button>
                   </td>
                 </tr>
               ))}
               {!ventes.chargement && !ventes.donnees?.length && (
                 <tr>
-                  <td colSpan={9} className="text-center text-body-secondary py-4">
-                    Aucune vente pour cette bande
+                  <td colSpan={10} className="text-center text-body-secondary py-4">
+                    Aucune vente
                   </td>
                 </tr>
               )}
@@ -168,6 +174,17 @@ export default function Ventes() {
           </table>
         </div>
       </div>
+      {aModifier && (
+        <ModifierVenteModal
+          vente={aModifier}
+          bandes={bandes}
+          fermer={() => setAModifier(null)}
+          apres={() => {
+            void ventes.recharger()
+            void rafraichirBandes()
+          }}
+        />
+      )}
     </>
   )
 }

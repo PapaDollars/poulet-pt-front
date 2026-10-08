@@ -2,17 +2,22 @@ import { useState, type FormEvent } from 'react'
 import { toast } from 'react-toastify'
 import { api, messageErreur } from '../api'
 import { useBande } from '../BandeContext'
-import BoutonSupprimer from '../composants/BoutonSupprimer'
 import Carte from '../composants/Carte'
+import ChoixBande from '../composants/ChoixBande'
+import FiltreBandes from '../composants/FiltreBandes'
 import SansBande from '../composants/SansBande'
 import { aujourdhui, dateFr, fcfa, nombre } from '../format'
 import type { Perte } from '../types'
 import { useCharger } from '../useCharger'
+import ModifierPerteModal from './ModifierPerteModal'
 import { useCoutAuJour } from '../useCoutAuJour'
 
 export default function Pertes() {
-  const { bande, rafraichirBandes } = useBande()
-  const pertes = useCharger<Perte[]>(bande ? `/pertes?bandeId=${bande.id}` : null)
+  const { bande, bandes, rafraichirBandes } = useBande()
+  const [aModifier, setAModifier] = useState<Perte | null>(null)
+  // Tableau : toutes les bandes par défaut, ou une seule
+  const [filtre, setFiltre] = useState('')
+  const pertes = useCharger<Perte[]>(filtre ? `/pertes?bandeId=${filtre}` : '/pertes')
   const [date, setDate] = useState(aujourdhui())
   const [nombrePerdu, setNombrePerdu] = useState('')
   const [cause, setCause] = useState('')
@@ -68,6 +73,9 @@ export default function Pertes() {
       <form className="card mb-4" onSubmit={enregistrer}>
         <div className="card-body">
           <div className="row g-3 align-items-end">
+            <div className="col-12 col-md-3">
+              <ChoixBande />
+            </div>
             <div className="col-6 col-md-2">
               <label className="form-label">Date</label>
               <input
@@ -92,7 +100,7 @@ export default function Pertes() {
                 required
               />
             </div>
-            <div className="col-12 col-md-5">
+            <div className="col-12 col-md-3">
               <label className="form-label">Cause</label>
               <input
                 className="form-control"
@@ -107,9 +115,9 @@ export default function Pertes() {
                 ))}
               </datalist>
             </div>
-            <div className="col-12 col-md-3 text-end">
+            <div className="col-12 col-md-2 text-end">
               <button className="btn btn-danger" disabled={envoi || !bande.vivants}>
-                Enregistrer la perte
+                Enregistrer
               </button>
             </div>
           </div>
@@ -129,12 +137,14 @@ export default function Pertes() {
         </div>
       </form>
 
+      <FiltreBandes valeur={filtre} changer={setFiltre} />
       <div className="card">
         <div className="table-responsive">
           <table className="table table-hover align-middle mb-0">
             <thead>
               <tr>
                 <th>Date</th>
+                <th>Bande</th>
                 <th>Âge</th>
                 <th className="text-end">Nombre</th>
                 <th>Cause</th>
@@ -148,6 +158,7 @@ export default function Pertes() {
               {(pertes.donnees ?? []).map((p) => (
                 <tr key={p.id}>
                   <td>{dateFr(p.date)}</td>
+                  <td>{p.bandeNom}</td>
                   <td>J{p.age}</td>
                   <td className="text-end fw-semibold">{nombre(p.nombre)}</td>
                   <td>{p.cause || '—'}</td>
@@ -156,21 +167,16 @@ export default function Pertes() {
                   </td>
                   <td className="text-end">{fcfa(p.coutUnitaire)}</td>
                   <td className="text-end fw-semibold texte-negatif">{fcfa(p.coutTotal)}</td>
-                  <td className="text-end">
-                    <BoutonSupprimer
-                      url={`/pertes/${p.id}`}
-                      confirmation="Supprimer cette perte ?"
-                      apres={() => {
-                        void pertes.recharger()
-                        void rafraichirBandes()
-                      }}
-                    />
+                  <td className="text-end text-nowrap">
+                    <button className="btn btn-sm btn-outline-secondary" onClick={() => setAModifier(p)}>
+                      Modifier
+                    </button>
                   </td>
                 </tr>
               ))}
               {!pertes.chargement && !pertes.donnees?.length && (
                 <tr>
-                  <td colSpan={8} className="text-center text-body-secondary py-4">
+                  <td colSpan={9} className="text-center text-body-secondary py-4">
                     Aucune perte enregistrée 👍
                   </td>
                 </tr>
@@ -179,6 +185,17 @@ export default function Pertes() {
           </table>
         </div>
       </div>
+      {aModifier && (
+        <ModifierPerteModal
+          perte={aModifier}
+          bandes={bandes}
+          fermer={() => setAModifier(null)}
+          apres={() => {
+            void pertes.recharger()
+            void rafraichirBandes()
+          }}
+        />
+      )}
     </>
   )
 }

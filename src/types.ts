@@ -5,11 +5,16 @@ export interface Unite {
   nom: string
 }
 
+export type CategorieProduit = 'aliment' | 'bande'
+
 export interface Produit {
   id: string
   nom: string
+  categorie: CategorieProduit
+  details?: string
   unite: string
   prix: number
+  vendable: boolean
 }
 
 export interface LigneMelange {
@@ -81,6 +86,7 @@ export interface LigneStock {
   nom: string
   unite: string
   prixReference: number
+  vendable: boolean
   quantite: number
   coutMoyen: number
   valeur: number
@@ -104,6 +110,9 @@ export interface MouvementStock {
   benefice?: number
   client?: string
   fournisseur?: string
+  nombreSacs?: number
+  poidsSac?: number
+  prixSac?: number
   libelle?: string
   fabricationId?: string
   stockApres: number
@@ -117,15 +126,50 @@ export interface HistoriqueProduit {
   lignes: MouvementStock[]
 }
 
+/** Produits pour les bandes affectés à une bande (pris dans un lot d'achat). */
 export interface Depense {
   id: string
   date: string
   bandeId: string
+  bandeNom?: string | null
+  achatId: string
+  produitId: string | null
+  nom: string
   designation: string
+  details?: string
   quantite: number
   unite: string
   prixUnitaire: number
   montant: number
+}
+
+/** Lot d'achat d'un produit pour les bandes (vaccin, médicament…). */
+export interface Achat {
+  id: string
+  date: string
+  produitId: string | null
+  nom: string
+  details?: string
+  unite: string
+  quantite: number
+  prixUnitaire: number
+  montant: number
+  fournisseur?: string
+  utilise: number
+  restant: number
+}
+
+/** Quantités achetées / affectées / restantes d'un produit pour les bandes. */
+export interface StockAchat {
+  produitId: string
+  nom: string
+  details: string
+  unite: string
+  prix: number
+  achete: number
+  utilise: number
+  restant: number
+  valeurRestante: number
 }
 
 export interface CoutPoulet {
@@ -170,6 +214,7 @@ export interface Perte {
 export interface LigneAchat {
   id?: string
   designation: string
+  details?: string
   typeAliment?: TypeAliment
   quantite: number
   unite: string

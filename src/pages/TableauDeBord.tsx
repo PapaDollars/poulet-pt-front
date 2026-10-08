@@ -15,6 +15,10 @@ export default function TableauDeBord() {
   const { axe, infobulle } = styleGraphique(c)
 
   if (!d) return <p className="text-body-secondary">Chargement…</p>
+  // Un backend d'une ancienne version renvoie un autre format : on le signale au lieu de planter
+  if (!d.totaux) {
+    return <div className="alert alert-danger">Réponse inattendue de l'API : le backend n'est pas à jour. Redémarrez-le (ou redéployez-le).</div>
+  }
   const t = d.totaux
 
   const moisGraphique = d.parMois.map((m) => ({

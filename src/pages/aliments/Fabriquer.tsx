@@ -29,7 +29,7 @@ const nouvelleCle = () => ++compteur
 
 /** Compose un mélange depuis une formule (tout reste modifiable) et le transforme en sacs. */
 export default function Fabriquer({ formules, rechargerFormules, formuleInitiale, apresFabrication }: Props) {
-  const produits = useCharger<Produit[]>('/produits')
+  const produits = useCharger<Produit[]>('/produits?categorie=aliment')
   const stock = useCharger<LigneStock[]>('/stock')
   const unites = useCharger<Unite[]>('/unites')
 
@@ -44,10 +44,11 @@ export default function Fabriquer({ formules, rechargerFormules, formuleInitiale
 
   const stockDe = (produitId: string | null) => stock.donnees?.find((s) => s.produitId === produitId)
 
-  // Prix proposé : coût d'achat + transport du stock s'il y en a, sinon le prix de la formule / du catalogue
+  // Prix proposé : coût réel du stock (achat + transport) pour le maïs, sinon le prix des Paramètres
   const prixPropose = (produitId: string | null, prixParDefaut: number) => {
     const s = stockDe(produitId)
-    return s && s.coutMoyen > 0 ? s.coutMoyen : prixParDefaut
+    if (s && s.coutMoyen > 0) return s.coutMoyen
+    return produits.donnees?.find((p) => p.id === produitId)?.prix ?? prixParDefaut
   }
 
   function chargerFormule(id: string) {
@@ -58,27 +59,32 @@ export default function Fabriquer({ formules, rechargerFormules, formuleInitiale
     setType(f.type)
     setNombreSacs(String(f.nombreSacs))
     setLignes(
-      f.lignes.map((l) => ({
-        cle: nouvelleCle(),
-        produitId: l.produitId,
-        nom: l.nom,
-        unite: l.unite,
-        quantite: l.quantite ? String(l.quantite) : '',
-        prixUnitaire: String(l.depuisStock ? prixPropose(l.produitId, l.prixUnitaire) : l.prixUnitaire),
-        depuisStock: l.depuisStock,
-      })),
+      f.lignes.map((l) => {
+        // Nom et unité à jour depuis les Paramètres
+        const produit = produits.donnees?.find((p) => p.id === l.produitId)
+        return {
+          cle: nouvelleCle(),
+          produitId: l.produitId,
+          nom: produit?.nom ?? l.nom,
+          unite: produit?.unite ?? l.unite,
+          quantite: l.quantite ? String(l.quantite) : '',
+          prixUnitaire: String(prixPropose(l.produitId, l.prixUnitaire)),
+          // Seul un produit géré en stock (le maïs) peut y être pris
+          depuisStock: l.depuisStock && Boolean(stockDe(l.produitId)),
+        }
+      }),
     )
   }
 
   // Formule choisie depuis l'onglet Formules, ou la première par défaut, dès que tout est chargé
   const initialise = useRef(false)
   useEffect(() => {
-    if (initialise.current || !formules.length || !stock.donnees) return
+    if (initialise.current || !formules.length || !stock.donnees || !produits.donnees) return
     initialise.current = true
     chargerFormule(formuleInitiale ?? formules[0].id)
     // Exécuté une seule fois (garde initialise) : chargerFormule n'a pas à être une dépendance
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formules, stock.donnees, formuleInitiale])
+  }, [formules, stock.donnees, produits.donnees, formuleInitiale])
 
   const maj = (cle: number, valeurs: Partial<Ligne>) => setLignes((ls) => ls.map((l) => (l.cle === cle ? { ...l, ...valeurs } : l)))
 
@@ -103,7 +109,14 @@ export default function Fabriquer({ formules, rechargerFormules, formuleInitiale
   const prixSac = sacs > 0 ? Math.round(coutMelange / sacs) : 0
 
   const lignesPourApi = () =>
-    lignes.map((l) => ({ produitId: l.produitId, nom: l.nom, unite: l.unite, quantite: l.quantite || 0, prixUnitaire: l.prixUnitaire || 0, depuisStock: l.depuisStock }))
+    lignes.map((l) => ({
+      produitId: l.produitId,
+      nom: l.nom,
+      unite: l.unite,
+      quantite: l.quantite || 0,
+      prixUnitaire: l.prixUnitaire || 0,
+      depuisStock: l.depuisStock,
+    }))
 
   async function fabriquer() {
     setEnvoi(true)
@@ -217,12 +230,25 @@ export default function Fabriquer({ formules, rechargerFormules, formuleInitiale
                         ))}
                       </select>
                       {!l.produitId && (
-                        <input className="form-control form-control-sm mt-1" value={l.nom} onChange={(e) => maj(l.cle, { nom: e.target.value })} placeholder="Désignation" />
+                        <input
+                          className="form-control form-control-sm mt-1"
+                          value={l.nom}
+                          onChange={(e) => maj(l.cle, { nom: e.target.value })}
+                          placeholder="Désignation"
+                        />
                       )}
                     </td>
                     <td>
                       <div className="input-group input-group-sm">
-                        <input type="number" min="0" step="any" className="form-control" value={l.quantite} onChange={(e) => maj(l.cle, { quantite: e.target.value })} placeholder="0" />
+                        <input
+                          type="number"
+                          min="0"
+                          step="any"
+                          className="form-control"
+                          value={l.quantite}
+                          onChange={(e) => maj(l.cle, { quantite: e.target.value })}
+                          placeholder="0"
+                        />
                         {l.produitId ? (
                           <span className="input-group-text">{l.unite}</span>
                         ) : (
@@ -235,18 +261,28 @@ export default function Fabriquer({ formules, rechargerFormules, formuleInitiale
                       </div>
                     </td>
                     <td>
-                      <input type="number" min="0" step="any" className="form-control form-control-sm" value={l.prixUnitaire} onChange={(e) => maj(l.cle, { prixUnitaire: e.target.value })} />
+                      <input
+                        type="number"
+                        min="0"
+                        step="any"
+                        className="form-control form-control-sm"
+                        value={l.prixUnitaire}
+                        onChange={(e) => maj(l.cle, { prixUnitaire: e.target.value })}
+                      />
                     </td>
                     <td className="text-center">
-                      <input
-                        type="checkbox"
-                        className="form-check-input"
-                        checked={l.depuisStock}
-                        disabled={!l.produitId}
-                        onChange={(e) => maj(l.cle, { depuisStock: e.target.checked })}
-                        aria-label="Retirer du stock"
-                      />
-                      {l.produitId && s && (
+                      {s ? (
+                        <input
+                          type="checkbox"
+                          className="form-check-input"
+                          checked={l.depuisStock}
+                          onChange={(e) => maj(l.cle, { depuisStock: e.target.checked })}
+                          aria-label="Retirer du stock"
+                        />
+                      ) : (
+                        <span className="text-body-secondary">—</span>
+                      )}
+                      {s && (
                         <div className={`small ${manque ? 'texte-negatif fw-semibold' : 'text-body-secondary'}`}>
                           dispo {nombre(s.quantite)}
                           {manque && ` (besoin ${nombre(besoin)})`}
@@ -255,7 +291,12 @@ export default function Fabriquer({ formules, rechargerFormules, formuleInitiale
                     </td>
                     <td className="text-end fw-semibold">{fcfa(montantLigne(l))}</td>
                     <td className="text-end">
-                      <button className="btn btn-sm btn-link text-danger p-0" onClick={() => setLignes((ls) => ls.filter((x) => x.cle !== l.cle))} title="Retirer la ligne" aria-label="Retirer la ligne">
+                      <button
+                        className="btn btn-sm btn-link text-danger p-0"
+                        onClick={() => setLignes((ls) => ls.filter((x) => x.cle !== l.cle))}
+                        title="Retirer la ligne"
+                        aria-label="Retirer la ligne"
+                      >
                         <FontAwesomeIcon icon={faXmark} />
                       </button>
                     </td>

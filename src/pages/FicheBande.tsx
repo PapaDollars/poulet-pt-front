@@ -23,7 +23,7 @@ export default function FicheBande() {
       <div className="d-flex flex-wrap align-items-baseline gap-3 mb-3">
         <h1 className="titre-page mb-0">{b.nom}</h1>
         <span className="text-body-secondary">
-          arrivée le {dateFr(b.dateArrivee)} · {b.cloturee ? `clôturée après ${b.duree} jours` : `J${b.age}`}
+          arrivée le {dateFr(b.dateArrivee)} · {b.cloturee ? `terminée après ${b.duree} jours` : `J${b.age}`}
         </span>
         <Link to="/bandes" className="ms-auto small">
           ← Toutes les bandes
@@ -64,7 +64,7 @@ export default function FicheBande() {
             <div className="card-body">
               <div className="d-flex justify-content-between align-items-center mb-2">
                 <h2 className="titre-graphique mb-0">Achats</h2>
-                <Link to="/achats" className="small">
+                <Link to="/bandes?onglet=depenses" className="small">
                   Ajouter
                 </Link>
               </div>
@@ -85,7 +85,9 @@ export default function FicheBande() {
                           {l.source === 'sacs' && l.typeAliment ? (
                             <span className={`badge badge-${l.typeAliment}`}>{TYPES_ALIMENT[l.typeAliment]}</span>
                           ) : (
-                            l.designation
+                            <>
+                              {l.designation} {l.details && <span className="text-body-secondary small">· {l.details}</span>}
+                            </>
                           )}
                         </td>
                         <td className="text-end">

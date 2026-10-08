@@ -1,14 +1,14 @@
 import { useState, type FormEvent } from 'react'
 import { toast } from 'react-toastify'
-import { api, messageErreur } from '../../api'
-import { useBande } from '../../BandeContext'
-import BoutonSupprimer from '../../composants/BoutonSupprimer'
-import { aujourdhui, dateFr, fcfa, LISTE_TYPES, nombre, TYPES_ALIMENT } from '../../format'
-import type { Distribution, StockSacs, TypeAliment } from '../../types'
-import { useCharger } from '../../useCharger'
+import { api, messageErreur } from '../api'
+import { useBande } from '../BandeContext'
+import { aujourdhui, dateFr, fcfa, LISTE_TYPES, nombre, TYPES_ALIMENT } from '../format'
+import type { Distribution, StockSacs, TypeAliment } from '../types'
+import { useCharger } from '../useCharger'
+import ModifierDistributionModal from './ModifierDistributionModal'
 
 /** Stock de sacs fabriqués et distribution aux bandes (en plusieurs fois, jusqu'à épuisement). */
-export default function Distribuer() {
+export default function DistribuerSacs() {
   const { bandes, bande: bandeActive, rafraichirBandes } = useBande()
   const sacs = useCharger<StockSacs[]>('/fabrications/sacs')
   const distributions = useCharger<Distribution[]>('/distributions')
@@ -20,6 +20,7 @@ export default function Distribuer() {
   const [lotId, setLotId] = useState('')
   const [nombreSacs, setNombreSacs] = useState('')
   const [envoi, setEnvoi] = useState(false)
+  const [aModifier, setAModifier] = useState<Distribution | null>(null)
 
   const cible = bandeId || (bandeActive && !bandeActive.cloturee ? bandeActive.id : enCours[0]?.id) || ''
   const duType = sacs.donnees?.find((s) => s.type === type)
@@ -180,8 +181,10 @@ export default function Distribuer() {
                   <td className="text-end">{nombre(d.nombreSacs)}</td>
                   <td className="text-end">{fcfa(d.prixSac)}</td>
                   <td className="text-end fw-semibold">{fcfa(d.montant)}</td>
-                  <td className="text-end">
-                    <BoutonSupprimer url={`/distributions/${d.id}`} confirmation="Annuler cette distribution ? Les sacs reviennent en stock." apres={recharger} />
+                  <td className="text-end text-nowrap">
+                    <button className="btn btn-sm btn-outline-secondary" onClick={() => setAModifier(d)}>
+                      Modifier
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -196,6 +199,15 @@ export default function Distribuer() {
           </table>
         </div>
       </div>
+      {aModifier && (
+        <ModifierDistributionModal
+          distribution={aModifier}
+          bandes={bandes}
+          restantsLot={sacs.donnees?.flatMap((t) => t.lots).find((l) => l.fabricationId === aModifier.fabricationId)?.restants ?? 0}
+          fermer={() => setAModifier(null)}
+          apres={recharger}
+        />
+      )}
     </>
   )
 }

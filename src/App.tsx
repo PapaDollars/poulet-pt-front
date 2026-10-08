@@ -1,8 +1,8 @@
-import { Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes } from 'react-router-dom'
 import { BandeProvider } from './BandeContext'
 import Layout from './composants/Layout'
 import Achats from './pages/Achats'
-import Aliments from './pages/Aliments'
+import Fabrications from './pages/Aliments'
 import Bandes from './pages/Bandes'
 import FicheBande from './pages/FicheBande'
 import Parametres from './pages/Parametres'
@@ -18,7 +18,8 @@ function App() {
         <Route element={<Layout />}>
           <Route index element={<TableauDeBord />} />
           <Route path="achats" element={<Achats />} />
-          <Route path="aliments" element={<Aliments />} />
+          <Route path="fabrications" element={<Fabrications />} />
+          <Route path="aliments" element={<Navigate to="/fabrications" replace />} />
           <Route path="ventes" element={<Ventes />} />
           <Route path="pertes" element={<Pertes />} />
           <Route path="stock" element={<Stock />} />

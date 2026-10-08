@@ -267,3 +267,49 @@ body {
 .ligne-retiree {
   opacity: 0.45;
 }
+
+/* Cartes produits (Achats, Dépenses) */
+.grille-produits {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 0.75rem;
+}
+
+.carte-produit {
+  height: 100%;
+  text-align: left;
+}
+
+.carte-produit.en-stock {
+  border-color: color-mix(in srgb, var(--positif) 45%, var(--bs-border-color));
+}
+
+.carte-nouveau {
+  border-style: dashed;
+  background: transparent;
+  min-height: 150px;
+}
+
+.carte-nouveau:hover {
+  border-color: var(--bs-primary);
+  color: var(--bs-primary);
+}
+
+.carte-produit.selectionnee {
+  border-color: var(--bs-primary);
+  box-shadow: 0 0 0 1px var(--bs-primary);
+}
+
+/* Tableaux : au-delà de 20 lignes, défilement dans le cadre (hauteur fixée par limiterTableaux.ts) ;
+   la ligne de titres reste visible */
+.table-responsive {
+  overflow-y: auto;
+}
+
+.table-responsive > .table > thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background-color: var(--bs-body-bg);
+  box-shadow: inset 0 -1px 0 var(--bs-border-color);
+}

@@ -1,21 +1,21 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useCharger } from '../useCharger'
 import type { Formule } from '../types'
-import Distribuer from './aliments/Distribuer'
 import Fabriquer from './aliments/Fabriquer'
 import Formules from './aliments/Formules'
 import Historique from './aliments/Historique'
 
-type Onglet = 'fabriquer' | 'distribuer' | 'historique' | 'formules'
+type Onglet = 'fabriquer' | 'formules' | 'historique'
 
 const ONGLETS: { cle: Onglet; libelle: string }[] = [
-  { cle: 'fabriquer', libelle: '1. Fabriquer un mélange' },
-  { cle: 'distribuer', libelle: '2. Donner des sacs aux bandes' },
-  { cle: 'historique', libelle: 'Historique' },
+  { cle: 'fabriquer', libelle: 'Fabriquer un mélange' },
   { cle: 'formules', libelle: 'Formules' },
+  { cle: 'historique', libelle: 'Historique' },
 ]
 
-export default function Aliments() {
+export default function Fabrications() {
+  const naviguer = useNavigate()
   const [onglet, setOnglet] = useState<Onglet>('fabriquer')
   const formules = useCharger<Formule[]>('/formules')
   // Formule à charger dans l'onglet Fabriquer (depuis l'onglet Formules)
@@ -23,7 +23,7 @@ export default function Aliments() {
 
   return (
     <>
-      <h1 className="titre-page">Aliments</h1>
+      <h1 className="titre-page">Fabrications</h1>
       <ul className="nav nav-tabs mb-4">
         {ONGLETS.map((o) => (
           <li className="nav-item" key={o.cle}>
@@ -39,10 +39,9 @@ export default function Aliments() {
           formules={formules.donnees ?? []}
           rechargerFormules={formules.recharger}
           formuleInitiale={formuleAUtiliser}
-          apresFabrication={() => setOnglet('distribuer')}
+          apresFabrication={() => naviguer('/bandes?onglet=sacs')}
         />
       )}
-      {onglet === 'distribuer' && <Distribuer />}
       {onglet === 'historique' && <Historique />}
       {onglet === 'formules' && (
         <Formules
